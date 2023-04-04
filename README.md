@@ -2,7 +2,7 @@
 
 ## Working Demo of the protocol
 
-[Working Deme](https://www.youtube.com/watch?v=2KG0Dn1qHMs&ab_channel=EtikshaJain)
+[Working Demo](https://www.youtube.com/watch?v=2KG0Dn1qHMs&ab_channel=EtikshaJain)
 
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=2KG0Dn1qHMs
 " target="_blank"><img src="http://img.youtube.com/vi/2KG0Dn1qHMs/0.jpg" 
