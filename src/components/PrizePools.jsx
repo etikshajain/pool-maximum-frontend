@@ -1,15 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { useAccount } from 'wagmi'
+import { ethers } from "ethers";
+import { useAccount, useBalance } from 'wagmi'
+import { fetchBalance } from '@wagmi/core'
+import { sendTransaction, prepareSendTransaction } from '@wagmi/core'
+
+import POOL_ABI from './Abi/Pool.json';
+import PRIZE_POOL_ABI from './Abi/PrizePool.json';
+import ERC20_ABI from './Abi/ERC20.json';
 
 //components
 import Loaderr from "./Loaderr.jsx"
 
-// Pool.sol address and ABI
-const PRIZE_POOL_CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
-const POOL_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const TICKET_CONTRACT_ADDRESS = "0xCafac3dD18aC6c6e92c921884f9E4176737C052c";
-const POOL_ABI = "abi";
-const PRIZE_POOL_ABI = "abi";
+let url = "HTTP://127.0.0.1:7545";
+let customHttpProvider = new ethers.providers.JsonRpcProvider(url);
+const PRIZE_POOL_CONTRACT_ADDRESS = "0xC95D3467C935a41cF7E0758203475e41F8dD6Ac6";
+const POOL_CONTRACT_ADDRESS = "0xc157eA17d93d34ec9Ef6D881b0Ad9587F229EB83";
+const TICKET_CONTRACT_ADDRESS = "0x67b82280bd0D2d3C94287EF7755316d4b8D89C14";
+const TOKEN_CONTRACT_ADDRESS_ETH = "0x2170ed0880ac9a755fd29b2688956bd959f933f8";
+const TOKEN_CONTRACT_ADDRESS_WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 ";
+const PRIZE_POOL_OWNER_ADDRESS = "0x6370Bd80276265Bbb648371DA719793EA3e964A6";
+const YEARN_VAULT_ADDRESS = "0xe1237aA7f535b0CC33Fd973D66cBf830354D16c7";
 
 // sleep function for testing
 function sleep(milliseconds) {
@@ -21,18 +31,18 @@ function sleep(milliseconds) {
   }
 
 // fetch contract using abi and address
-const getContract = async (sc_address, abi) => {
+const getContract = async (sc_address, abi, your_address) => {
   try {
     const { ethereum } = window;
 
     if (ethereum) {
-    //   const provider = new ethers.providers.Web3Provider(ethereum);
-    //   const signer = provider.getSigner();
-    //   const connectedContract = new ethers.Contract(sc_address, abi, signer);
-      console.log("Fetching contract ..")
-      sleep(2000);
+      const provider = new ethers.providers.Web3Provider(ethereum);
+      const signer = provider.getSigner();
+      console.log("Fetching contract ..");
+      const connectedContract = new ethers.Contract(sc_address, abi, signer, your_address);
       console.log("This is the connected contract")
-      return "connectedContract";
+      console.log(connectedContract);
+      return connectedContract;
 
     } else {
       console.log("Ethereum object doesn't exist!");
@@ -42,40 +52,42 @@ const getContract = async (sc_address, abi) => {
     return
   }
 }
-
-// fetch TVL from the Pool.sol contract
-// returns int
-const fetchTVL = async (sc_address, abi) => {
-    try {
-    //   const connectedContract = await getContract(sc_address, abi);
-    //   let txn = await connectedContract.TVL();
-    //   console.log(txn);
-      console.log("Fetching TVL ..")
-      sleep(2000);
-      console.log("Fetched TVL")
-      return 100;
-    } catch (error) {
-      console.log(error)
-      return
-    }
-}
   
 
 const PrizePools = (props) => {
   const [TVL, setTVL] = useState(0);
 
+  // fetch TVL from the Pool.sol contract
+  // returns int
+  const fetchTVL = async (sc_address, abi) => {
+    try {
+      const connectedContract = await getContract(sc_address, abi, address);
+      console.log("Fetching TVL ..")
+      let txn = await connectedContract.TVL();
+      console.log("Fetched TVL")
+      console.log(ethers.utils.formatEther(txn));
+      return ethers.utils.formatEther(txn);
+    } catch (error) {
+      console.log(error)
+      return
+    }
+  }
+
   // fetch total deposits, your deposits, total tickets and your tickets
   const fetchDetailsActive = async (connectedContract, your_address) => {
         try {
         console.log("fetching active details")
-        sleep(3000)
         // fetch total deposits in the pool
-        // let td = await connectedContract.totalDeposits();
-        setTotalDeposits(100)
+        console.log("fetching total deposits")
+        let td = await connectedContract.totalDeposits();
+        console.log(ethers.utils.formatEther(td));
+        setTotalDeposits(ethers.utils.formatEther(td))
 
         // fetch your deposits in the pool
-        // let yd = await connectedContract.deposits(your_address);
-        setYourDeposit(10)
+        console.log("fetching your deposits")
+        let yd = await connectedContract.deposits(your_address);
+        console.log(ethers.utils.formatEther(yd))
+        setYourDeposit(ethers.utils.formatEther(yd))
 
         return 0;
         } catch (error) {
@@ -87,22 +99,29 @@ const PrizePools = (props) => {
     const fetchDetailsLocked = async (connectedContract, your_address) => {
         try {
         console.log("fetching locked details")
-        sleep(3000)
         // fetch total deposits in the pool
-        // let td = await connectedContract.totalDeposits();
-        setTotalDeposits(101)
+        console.log("fetching total deposits")
+        let td = await connectedContract.totalDeposits();
+        console.log(td.toNumber())
+        setTotalDeposits(td.toNumber())
 
         // fetch total tickets in the pool
-        // let tt = await connectedContract.totalTicketSupply();
-        setTicketsCirculated(1000)
+        console.log("fetching total tickets")
+        let tt = await connectedContract.totalTicketSupply();
+        console.log(tt.toNumber())
+        setTicketsCirculated(tt.toNumber())
 
         // fetch your deposits in the pool
-        // let yd = await connectedContract.deposits(your_address);
-        setYourDeposit(11)
+        console.log("fetching your deposits")
+        let yd = await connectedContract.deposits(your_address);
+        console.log(yd.toNumber())
+        setYourDeposit(yd.toNumber())
 
         // fetch your tickets in the pool
-        // let yt = await connectedContract.tickets(your_address);
-        setYourTickets(112)
+        console.log("fetching your tickets")
+        let yt = await connectedContract.tickets(your_address);
+        console.log(yt.toNumber())
+        setYourTickets(yt.toNumber())
 
         return 0;
         } catch (error) {
@@ -114,34 +133,47 @@ const PrizePools = (props) => {
     const fetchDetailsClosed = async (connectedContract, your_address) => {
         try {
         console.log("fetching closed details")
-        sleep(3000)
         // fetch total deposits in the pool
-        // let td = await connectedContract.totalDeposits();
-        setTotalDeposits(102)
+        console.log("fetching total deposits")
+        let td = await connectedContract.totalDeposits();
+        console.log(td.toNumber())
+        setTotalDeposits(td.toNumber())
 
         // fetch total tickets in the pool
-        // let tt = await connectedContract.totalTicketSupply();
-        setTicketsCirculated(1001)
+        console.log("fetching total tickets")
+        let tt = await connectedContract.totalTicketSupply();
+        console.log(tt.toNumber())
+        setTicketsCirculated(tt.toNumber())
 
         // fetch your deposits in the pool
-        // let yd = await connectedContract.deposits(your_address);
-        setYourDeposit(12)
+        console.log("fetching your deposits")
+        let yd = await connectedContract.deposits(your_address);
+        console.log(yd.toNumber())
+        setYourDeposit(yd.toNumber())
 
         // fetch your tickets in the pool
-        // let yt = await connectedContract.tickets(your_address);
-        setYourTickets(113)
+        console.log("fetching your tickets")
+        let yt = await connectedContract.tickets(your_address);
+        console.log(yt.toNumber())
+        setYourTickets(yt.toNumber())
 
-        // fetch total interest
-        // let ti = await connectedContract.totalInterest();
-        setTotalInterest(500)
+        // fetch total interest yo
+        console.log("fetching total interest")
+        let ti = await connectedContract.totalInterest();
+        console.log(ti.toNumber())
+        setTotalInterest(ti.toNumber())
 
         // fetch your prize
-        // let yp = await connectedContract.calculateInterest(your_address);
-        setYourPrize(20)
+        console.log("fetching your prize")
+        let yp = await connectedContract.calculateInterest(your_address);
+        console.log(yp.toNumber())
+        setYourPrize(yp.toNumber())
 
         // fetch winner or not
-        // let w = await connectedContract.checkWinner();
-        setWinner(true)
+        console.log("fetching whether winner")
+        let w = await connectedContract.checkWinner();
+        console.log(w)
+        setWinner(w)
 
         return 0;
         } catch (error) {
@@ -150,8 +182,38 @@ const PrizePools = (props) => {
         }
     }
 
+    const depositToPrizePool = async (your_address, amount, e) => {
+      try {
+      // fetch your eth balance
+      const connectedContract = await getContract(PRIZE_POOL_CONTRACT_ADDRESS, PRIZE_POOL_ABI.abi, customHttpProvider)
+      const tokenContract = await getContract(TOKEN_CONTRACT_ADDRESS_ETH, ERC20_ABI, customHttpProvider)
+      
+      console.log("checking that you have enough eth")
+      const balance = await customHttpProvider.getBalance(your_address);
+      const balanceInEth = ethers.utils.formatEther(balance)
+      console.log("your eth balance is", balanceInEth)
+
+      if(balance>=amount){
+        // send
+        console.log("sending")
+        const result = await connectedContract.deposit({ value: ethers.utils.parseUnits(amount.toString(), "ether") });
+        // const result = await connectedContract.deposit(amount);
+        console.log(result)
+
+      }
+      else{
+        return "Not enough ether"
+      }
+
+      return 0;
+      } catch (error) {
+      console.log(error)
+      return
+      }
+  }
+
     const { address } = useAccount()
-    const [contract, setContract] = useState({});
+    const [contract, setContract] = useState([]);
     const [totalDeposits, setTotalDeposits] = useState(0);
     const [ticketsCirculated, setTicketsCirculated] = useState(0);
     const [yourDeposit, setYourDeposit] = useState(0);
@@ -173,8 +235,10 @@ const PrizePools = (props) => {
     // editNote(note.id,note.etitle,note.edescription,note.etag);
     }
 
-    const depositFunds = (e)=>{
-      console.log("deposit")
+    const depositFunds = async (e)=>{
+      // e.preventDefault()
+      console.log("depositing")
+      await depositToPrizePool(address, 10, e);
     }
     const claimPrize = (e)=>{
       console.log("claim")
@@ -183,29 +247,34 @@ const PrizePools = (props) => {
   useEffect( () => {
     const fetchPrizePoolAndTVL = async () => {
         setLoading(true)
-        const tvl = await fetchTVL(POOL_CONTRACT_ADDRESS, POOL_ABI);
+        const tvl = await fetchTVL(POOL_CONTRACT_ADDRESS, POOL_ABI.abi);
         setTVL(tvl);
-        const pp_contract = await getContract(PRIZE_POOL_CONTRACT_ADDRESS, PRIZE_POOL_ABI)
+        const pp_contract = await getContract(PRIZE_POOL_CONTRACT_ADDRESS, PRIZE_POOL_ABI.abi, address)
+        // const sender = await pp_contract.checkSender()
         setContract(pp_contract);
-        // const dep_deadline = await pp_contract.depositionDeadline();
-        const dep_deadline = 1580554757000;
-        setDepositDeadline(dep_deadline)
-        // const withdraw_time = await pp_contract.nextDrawTime();
-        const withdraw_time = 1680554757000;
-        setWithdrawTime(withdraw_time)
-        if(Date.now()<dep_deadline){
+        const dep_deadline = await pp_contract.depositDeadline();
+        setDepositDeadline(dep_deadline.toNumber()*1000)
+        const withdraw_time = await pp_contract.nextDrawTime();
+        setWithdrawTime(withdraw_time.toNumber()*1000);
+        console.log("here")
+        console.log(contract);
+        console.log(tvl);
+        console.log(depositDeadline);
+        console.log(withdrawTime);
+        console.log(Date.now());
+        if(Date.now()<depositDeadline){
           setState("Active")
-          await fetchDetailsActive(contract,address);
+          await fetchDetailsActive(pp_contract,address);
         }
-        else if(Date.now()<withdraw_time){
+        else if(Date.now()<withdrawTime){
           setState("Locked")
-          await fetchDetailsLocked(contract,address);
+          await fetchDetailsLocked(pp_contract,address);
         }
         else{
           setState("Closed")
-          await fetchDetailsClosed(contract,address);
+          await fetchDetailsClosed(pp_contract,address);
         }
-        setLoading(false)
+        setLoading(false);
     }
     fetchPrizePoolAndTVL();
   }, []);
@@ -222,11 +291,11 @@ const PrizePools = (props) => {
     <ul>
       <li>Chain: Ethereum</li>
       <li>Prize Pool address: {PRIZE_POOL_CONTRACT_ADDRESS}</li>
-      <li>Prize Pool address: {TICKET_CONTRACT_ADDRESS}</li>
-      <li>Prize Pool token: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2</li>
+      <li>Ticket address: {TICKET_CONTRACT_ADDRESS}</li>
+      <li>Prize Pool token: {TOKEN_CONTRACT_ADDRESS_ETH}</li>
       <li>Deposit Deadline: {depositDeadline}</li>
       <li>Withdrawal Time: {withdrawTime}</li>
-      <li>Yearn Vault Utilised: 0xe1237aA7f535b0CC33Fd973D66cBf830354D16c7</li>
+      <li>Yearn Vault Utilised: {YEARN_VAULT_ADDRESS}</li>
       <li>Award Share for winner: 80%</li>
 
       <li>Total Amount deposited: {totalDeposits}</li>
@@ -242,8 +311,8 @@ const PrizePools = (props) => {
     </div>
 
     <div className="col poolButtons">
-        {props.type!=="Active" ?
-        (props.type==="Locked" ? 
+        {state!=="Active" ?
+        (state==="Locked" ? 
         <></> :
         <button type="button" className="btn btn-primary" onClick={claimPrize}> Claim Your Prize! </button> ) :
         <button type="button" className="btn btn-primary" onClick={depositFunds}> Deposit </button> }
