@@ -294,3 +294,15 @@ ul.navbar-nav a.nav-link.active:hover {
     margin-top:100px;
     /* margin-bottom:30px; */
 }
+
+table {
+    border: solid 1px;
+}
+th {
+    border: solid 1px;
+    width: 10%;
+}
+td {
+    border: solid 1px;
+    width: 30%;
+}
